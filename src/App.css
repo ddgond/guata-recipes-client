@@ -1,38 +1,79 @@
 .App {
   text-align: center;
+  display: grid;
+  grid: auto auto 1fr / 1fr 2fr 4fr 10px;
+  place-items: stretch;
+  gap: 5vw;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.underline {
+  text-decoration: underline;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.ingredients .highlight {
+  background-color: bisque;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.steps .highlight {
+  background-color: bisque;
 }
 
-.App-link {
-  color: #61dafb;
+.highlightBlock {
+  background-color: black;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.recipeHeader {
+  background-color: bisque;
+  border: 1px solid black;
+  border-top-width: 0;
+  border-radius: 0 0 20px 20px;
+  grid-column: 2 / 4;
+  grid-row: 1;
+}
+
+.recipeList {
+  grid-column: 1;
+  grid-row: 1 / 4;
+}
+
+.recipeListItem {
+  padding: 10px;
+  margin: 5px auto;
+  background-color: bisque;
+  border: 1px solid black;
+  border-left-width: 0;
+  border-radius: 0 20px 20px 0;
+}
+
+.recipeListItem:hover {
+  background-color: burlywood;
+}
+
+.recipeListItem.selected {
+  font-weight: bold;
+  background-color: #f0a802;
+}
+
+.ingredients {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: left;
+  text-align: left;
+  margin-left: 10px;
+}
+
+.steps {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: left;
+  text-align: left;
+  margin-right: 10px;
+}
+
+.recipeBodyBackground {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 20px;
 }
