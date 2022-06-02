@@ -1,8 +1,13 @@
 import './App.css';
 import {useEffect, useState} from "react";
-import {Tooltip} from "@mui/material";
-import {Autocomplete} from "@mui/material";
-import {TextField} from "@mui/material";
+import {Divider, Button, Collapse, Chip, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Fab, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
+import AddIcon from '@mui/icons-material/Add';
+import BookIcon from '@mui/icons-material/Book';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import Linkify from 'react-linkify';
 
 const recursiveHighlight = (phrase, keywords, highlightFunction) => {
   if (keywords.length === 0) {
@@ -16,8 +21,21 @@ function App() {
   const [ingredientHighlight, setIngredientHighlight] = useState(false);
   const [stepHighlight, setStepHighlight] = useState([]);
   const [activeRecipe, setActiveRecipe] = useState(false);
+  const [mode, setMode] = useState('view');
+  const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [recipes, setRecipes] = useState([]);
+  const [password, setPassword] = useState('');
+  const [newRecipeName, setNewRecipeName] = useState('');
+  const [newRecipeDescription, setNewRecipeDescription] = useState('');
+  const [newRecipeServes, setNewRecipeServes] = useState('');
+  const [newRecipeTags, setNewRecipeTags] = useState([]);
+  const [newRecipeIngredients, setNewRecipeIngredients] = useState([{entry:'', keywords: []}]);
+  const [newRecipeSteps, setNewRecipeSteps] = useState([{text: ''}]);
+  const [isSubmittingRecipe, setIsSubmittingRecipe] = useState(false);
+  const [isDeletingRecipe, setIsDeletingRecipe] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [debug, setDebug] = useState('');
 
   useEffect(() => {
     fetch('/api').then(response => {
@@ -27,10 +45,135 @@ function App() {
     })
   }, []);
 
+  if (debug !== '') {
+    setTimeout(() => setDebug(''), 10000);
+  }
+
+  const updateNewIngredients = () => {
+    const update = newRecipeIngredients.map(ingredient => {return {
+      entry: ingredient.entry,
+      keywords: [...ingredient.keywords]
+    }});
+    setNewRecipeIngredients(update);
+  }
+
+  const updateNewSteps = () => {
+    setNewRecipeSteps(newRecipeSteps.map(step => {return {text: step.text}}));
+  }
+
+  const createRecipe = () => {
+    setNewRecipeName('');
+    setNewRecipeDescription('');
+    setNewRecipeServes('');
+    setNewRecipeTags([]);
+    setNewRecipeIngredients([{entry:'', keywords: []}]);
+    setNewRecipeSteps([{text:''}]);
+    setMode('create');
+  }
+
+  const editRecipe = (recipe) => {
+    setNewRecipeName(recipe.name);
+    setNewRecipeDescription(recipe.description);
+    setNewRecipeServes(recipe.serves);
+    setNewRecipeTags([...recipe.tags]);
+    setNewRecipeIngredients(recipe.ingredients.map(ingredient => {return {entry: ingredient.entry, keywords: [...ingredient.keywords]}}));
+    setNewRecipeSteps(recipe.steps.map(step => {return {text: step.text}}));
+    setMode('edit');
+  }
+
+  const deleteRecipe = (recipe) => {
+    setIsDeletingRecipe(true);
+    recipe.password = password;
+    fetch(`/api/recipe/${recipe.name}`, {
+      method: 'DELETE',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+      body: JSON.stringify(recipe)
+    }).then(res => {
+      if (res.status === 200) {
+        return res.json().then(data => {
+          recipes.splice(recipes.findIndex(oldRecipe => oldRecipe.name === recipe.name), 1);
+          setRecipes([...recipes]);
+          setNewRecipeName('');
+          setNewRecipeDescription('');
+          setNewRecipeServes('');
+          setNewRecipeTags([]);
+          setNewRecipeIngredients([{entry:'', keywords: []}]);
+          setNewRecipeSteps([{text:''}]);
+          setMode('view');
+          setActiveRecipe(false);
+        })
+      } else {
+        res.text().then(data => {
+          setDebug(data);
+        })
+      }
+    }).catch(err => {
+      setDebug(err);
+    }).finally(() => {
+      setIsDeletingRecipe(false);
+      setDeleteWarningOpen(false);
+    });
+  }
+
+  const submitRecipe = () => {
+    const newRecipe = {
+      name: newRecipeName,
+      description: newRecipeDescription,
+      serves: newRecipeServes,
+      tags: newRecipeTags,
+      ingredients: newRecipeIngredients,
+      steps: newRecipeSteps,
+      password: password,
+      edit: mode === 'edit',
+      previousName: mode === 'edit' ? activeRecipe.name : undefined
+    };
+    setIsSubmittingRecipe(true);
+    fetch('/api/recipe', {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+      body: JSON.stringify(newRecipe)
+    }).then(res => {
+      if (res.status === 200) {
+        return res.json().then(data => {
+          if (newRecipe.edit) {
+            recipes.splice(recipes.findIndex(recipe => recipe.name === newRecipe.previousName), 1);
+          }
+          recipes.push(data);
+          setRecipes([...recipes]);
+          setActiveRecipe(data);
+          setMode('view');
+        })
+      } else {
+        res.text().then(data => {
+          setUploadError(data);
+        })
+      }
+    }).catch(err => {
+      setDebug(err);
+    }).finally(() => {
+      setIsSubmittingRecipe(false);
+    });
+  }
+
   const ingredients = recipes.reduce((prev, recipe) => prev.concat(recipe.ingredients), []);
   const keywords = ingredients.reduce((prev, ingredient) => prev.concat(ingredient.keywords), []);
   let tags = recipes.reduce((prev, recipe) => prev.concat(recipe.tags), []);
   tags = tags.filter((tag,i) => tags.indexOf(tag) === i);
+  tags = tags.sort((a,b) => a.localeCompare(b));
 
   const getIngredientByKeyword = (keyword) => {
     return activeRecipe.ingredients.find(ingredient => ingredient.keywords.includes(keyword));
@@ -67,11 +210,56 @@ function App() {
 
   const sortIngredientsByStepIndex = (ingredients) => {
     return ingredients.sort((a,b) => {
+      const hasStep = (ingredient) => {
+        return activeRecipe.steps.some(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
+      }
+      const getStep = (ingredient) => {
+        return activeRecipe.steps.find(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
+      }
       const getStepIndex = (ingredient) => {
-        return activeRecipe.steps.findIndex(step => ingredient.keywords.some(keyword => step.text.includes(keyword)))
+        return activeRecipe.steps.indexOf(getStep(ingredient));
+      }
+      const getKeywordIndex = (ingredient) => {
+        return ingredient.keywords.map(keyword => getStep(ingredient).text.indexOf(keyword))
+          .filter(index => index > -1)
+          .reduce((prev, curr) => Math.min(prev, curr), 999999);
+      }
+      if (!hasStep(a) && !hasStep(b)) {
+        return 0;
+      }
+      if (hasStep(a) && !hasStep(b)) {
+        return 1;
+      }
+      if (!hasStep(a) && hasStep(b)) {
+        return -1;
+      }
+      if (getStepIndex(a) === getStepIndex(b)) {
+        return getKeywordIndex(a) - getKeywordIndex(b);
       }
       return getStepIndex(a) - getStepIndex(b);
     });
+  }
+
+  const matchKeyword = (text, keyword) => {
+    const keywordList = activeRecipe.ingredients.reduce((prev, curr) => prev.concat(curr.keywords), []);
+    const getKeywordRange = (t, k) => {
+      return {start: t.indexOf(k), end: t.indexOf(k) + k.length};
+    };
+    const keywordRange = getKeywordRange(text, keyword);
+    if (keywordRange.start === -1) {
+      return false;
+    }
+    const doesRangeOverlap = (a, b) => {
+      return (a.start >= b.start && a.start < b.end) || (a.end > b.start && a.end <= b.end) || (a.start <= b.start && a.end >= b.end);
+    };
+    const biggerOverlappingKeyword = keywordList.find(otherKeyword => {
+      const otherKeywordRange = getKeywordRange(text, otherKeyword);
+      if (otherKeywordRange.start === -1) {
+        return false;
+      }
+      return doesRangeOverlap(keywordRange, otherKeywordRange) && otherKeyword.length > keyword.length;
+    });
+    return !biggerOverlappingKeyword;
   }
 
   let selectableTags = filteredRecipes.reduce((prev, recipe) => prev.concat(recipe.tags), []);
@@ -81,7 +269,17 @@ function App() {
 
   return (
     <div className="App">
+      {JSON.stringify(debug).length > 2 &&
+        <div style={{position: 'fixed', bottom: '0', left: '0'}}>
+          {JSON.stringify(debug)}
+        </div>
+      }
       <div className="recipeList">
+        <br/>
+        <div className={`recipeListItem ${mode === 'create' ? 'selected' : ''}`} onMouseDown={() => mode === 'create' ? setMode('view') : createRecipe()}>
+          + New Recipe +
+        </div>
+        <Divider/>
         <Autocomplete
           multiple
           filterSelectedOptions
@@ -92,25 +290,84 @@ function App() {
             <TextField
               {...params}
               variant="standard"
-              label="Filter"
+              label="Filter by tag"
             />
           )}>
         </Autocomplete>
         {filteredRecipes.map(recipe =>
-            <div key={recipe.name} className={`recipeListItem ${activeRecipe.name === recipe.name && 'selected'}`} onMouseDown={() => setActiveRecipe(activeRecipe.name !== recipe.name && recipe)}>
+            <div key={recipe.name} className={`recipeListItem ${activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`} onMouseDown={() => {setActiveRecipe((activeRecipe.name !== recipe.name || mode === 'create') && recipe); setMode('view')}}>
               {recipe.name}
             </div>
         )}
       </div>
-      {activeRecipe &&
+      {activeRecipe && mode === 'view' &&
         <>
-          <div className="recipeHeader" key={activeRecipe.name}>
-            <h1>{activeRecipe.name}</h1>
-            <p>{activeRecipe.description}</p>
-            <p>Serves: {activeRecipe.serves}</p>
-            <p>Tags: {activeRecipe.tags.map(tag=>selectedTags.includes(tag) ? <b>{tag}</b> : tag).reduce((prev, tag)=>[prev, ', ', tag])}</p>
-          </div>
-          <div className="recipeBodyBackground"></div>
+          <Linkify>
+            <div className="recipeHeader">
+              <h1>{activeRecipe.name}</h1>
+              <p>{activeRecipe.description}</p>
+              <p>Serves: {activeRecipe.serves}</p>
+              <p>Tags: {activeRecipe.tags.map(tag=>selectedTags.includes(tag) ? <b>{tag}</b> : tag).reduce((prev, tag)=>[prev, ', ', tag])}</p>
+              <Fab
+                color="primary"
+                aria-label="submit"
+                variant="extended"
+                onClick={() => editRecipe(activeRecipe)}
+              >
+                <EditIcon/> Edit Recipe
+              </Fab>
+              <Fab
+                sx={{marginLeft: '10px'}}
+                color="error"
+                aria-label="submit"
+                variant="extended"
+                onClick={() => setDeleteWarningOpen(true)}
+              >
+                <DeleteIcon/> Delete Recipe
+              </Fab>
+              <Dialog
+                open={deleteWarningOpen}
+                onClose={() => setDeleteWarningOpen(false)}
+              >
+                <DialogTitle>
+                  {"Are you sure you wish to delete this recipe?"}
+                </DialogTitle>
+                <DialogContent>
+                  <DialogContentText>
+                    Deleting a recipe cannot be undone.
+                  </DialogContentText>
+                  <TextField
+                    variant="outlined"
+                    margin="normal"
+                    value={password}
+                    type='password'
+                    onChange={e => setPassword(e.target.value)}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">Auth Password:</InputAdornment>,
+                    }}
+                    size="small"
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setDeleteWarningOpen(false)}>Cancel</Button>
+                  {isDeletingRecipe ?
+                    <Button>
+                      Deleting recipe...
+                    </Button>
+                    :
+                    <Button onClick={() => {
+                      deleteRecipe(activeRecipe);
+                    }} color="error">
+                      Delete
+                    </Button>
+                  }
+                </DialogActions>
+              </Dialog>
+              <br/>
+              <br/>
+            </div>
+          </Linkify>
+          <div className="recipeBodyBackground"/>
           <div className="ingredients">
             {sortIngredientsByStepIndex(activeRecipe.ingredients).map(ingredient =>
                 <p
@@ -126,13 +383,212 @@ function App() {
           <div className="steps">
             {activeRecipe.steps.map((step, i) => {
               const keywords = activeRecipe.ingredients.reduce((prev, ingredient) => prev.concat(ingredient.keywords), [])
+                .sort((a,b) => {
+                  return b.length - a.length;
+                });
               return <p
                   key={i}
-                  className={stepHighlight.some(keyword => step.text.includes(keyword)) && 'highlight'}
+                  className={stepHighlight.some(keyword => matchKeyword(step.text, keyword)) ? 'highlight' : ''}
               >
                 {i+1}) {recursiveHighlight(step.text, keywords, linkToHighlight)}
               </p>
             })}
+          </div>
+        </>
+      }
+      {(mode === 'create' || mode === 'edit') &&
+        <>
+          <div className="recipeHeader">
+            <br/>
+            <div>
+              <TextField
+                variant="outlined"
+                margin="normal"
+                value={password}
+                type='password'
+                onChange={e => setPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">Auth Password:</InputAdornment>,
+                }}
+                size="small"
+              />
+            </div>
+            <div>
+              <TextField
+                variant="outlined"
+                margin="normal"
+                value={newRecipeName}
+                onChange={e => setNewRecipeName(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">Recipe Title:</InputAdornment>,
+                }}
+                size="small"
+              />
+            </div>
+            <div>
+              <TextField
+                className="wideCreationInput"
+                variant="outlined"
+                margin="normal"
+                multiline
+                value={newRecipeDescription}
+                onChange={e => setNewRecipeDescription(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">Recipe Description:</InputAdornment>,
+                }}
+                size="small"
+              />
+            </div>
+            <div>
+              <TextField
+                placeholder="Input a number"
+                variant="outlined"
+                margin="normal"
+                value={newRecipeServes}
+                onChange={e => setNewRecipeServes(e.target.value)}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">Serves:</InputAdornment>,
+                }}
+                size="small"
+              />
+            </div>
+            <div>
+              <Autocomplete
+                className="narrowCreationInput"
+                multiple
+                value={newRecipeTags}
+                options={tags}
+                freeSolo
+                onChange={(event, value) => setNewRecipeTags(value)}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                  <Chip variant="outlined" label={option} {...getTagProps({ index })} />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="filled"
+                    label="Tags"
+                    placeholder="Set at least one tag for filtering"
+                  />
+                )}
+              />
+            </div>
+            <br/>
+            <Divider/>
+            <div>
+              <h2>Ingredients</h2>
+              {newRecipeIngredients.map((newIngredient,i) =>
+                <div key={i}>
+                  <TextField
+                    className="narrowCreationInput"
+                    multiline
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">Ingredient {i+1}:</InputAdornment>,
+                    }}
+                    variant="outlined"
+                    margin="normal"
+                    value={newIngredient.entry}
+                    onChange={e => {newIngredient.entry = e.target.value; updateNewIngredients()}}
+                  />
+                  <Autocomplete
+                    style={{display:'inline-block',marginLeft:'20px'}}
+                    className="narrowCreationInput"
+                    multiple
+                    value={newIngredient.keywords}
+                    options={[]}
+                    freeSolo
+                    onChange={(event, value) => {newIngredient.keywords = value; updateNewIngredients()}}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => (
+                        <Chip variant="outlined" label={option} {...getTagProps({ index })} />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="filled"
+                        label="Keywords"
+                        placeholder="Set at least one keyword for highlighting"
+                      />
+                    )}
+                  />
+                  {newRecipeIngredients.length > 1 && <RemoveCircleOutlineOutlinedIcon onClick={() => {newRecipeIngredients.splice(i,1); updateNewIngredients();}}/>}
+                </div>)}
+                <div>
+                  <AddCircleOutlineOutlinedIcon onClick={() => {newRecipeIngredients.push({entry:'', keywords:[]}); updateNewIngredients();}}/>
+                </div>
+            </div>
+            <br/>
+            <Divider/>
+            <div>
+              <h2>Steps</h2>
+              {newRecipeSteps.map((newStep,i) =>
+                <div key={i}>
+                  <TextField
+                    className="mediumCreationInput"
+                    multiline
+                    variant="outlined"
+                    margin="normal"
+                    value={newStep.text}
+                    onChange={e => {newStep.text = e.target.value; updateNewSteps()}}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">Step {i+1}:</InputAdornment>,
+                    }}
+                  />
+                  {newRecipeSteps.length > 1 && <RemoveCircleOutlineOutlinedIcon onClick={() => {newRecipeSteps.splice(i,1); updateNewSteps();}}/>}
+                </div>)}
+              <div>
+                <AddCircleOutlineOutlinedIcon onClick={() => {newRecipeSteps.push({text:''}); updateNewSteps();}}/>
+              </div>
+            </div>
+            <br/>
+            {isSubmittingRecipe ?
+              <Fab
+                aria-label="submit"
+                variant="extended"
+              >
+                <AddIcon/> Uploading Recipe
+              </Fab>
+              :
+              mode === 'edit' ?
+                <Fab
+                  color="primary"
+                  aria-label="submit"
+                  variant="extended"
+                  onClick={submitRecipe}
+                >
+                  <BookIcon/> Save Changes
+                </Fab>
+              :
+                <Fab
+                  color="primary"
+                  aria-label="submit"
+                  variant="extended"
+                  onClick={submitRecipe}
+                >
+                  <AddIcon/> Add Recipe
+                </Fab>
+            }
+            <br/>
+            <br/>
+            <Collapse in={uploadError.length > 0}>
+              <Alert
+                className="narrowCreationInput"
+                severity="error"
+                action={
+                  <Button color="inherit" size="small" onClick={() => setUploadError('')}>
+                    DISMISS
+                  </Button>
+                }
+              >
+                <AlertTitle>Error</AlertTitle>
+                {uploadError}
+              </Alert>
+            </Collapse>
+            <br/>
+            <br/>
           </div>
         </>
       }

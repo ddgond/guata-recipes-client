@@ -77,3 +77,18 @@
   border: 1px solid black;
   border-radius: 20px;
 }
+
+.wideCreationInput {
+  width: 90%;
+  margin: 0 auto;
+}
+
+.mediumCreationInput {
+  width: 65%;
+  margin: 0 auto;
+}
+
+.narrowCreationInput {
+  width: 40%;
+  margin: 0 auto;
+}
