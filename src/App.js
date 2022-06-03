@@ -1,12 +1,15 @@
 import './App.css';
 import {useEffect, useState} from "react";
-import {Divider, Button, Collapse, Chip, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
+import {Divider, Button, Collapse, Chip, Checkbox, FormGroup, FormControlLabel, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import BookIcon from '@mui/icons-material/Book';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
+import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
+import CancelIcon from '@mui/icons-material/Cancel';
 import Linkify from 'react-linkify';
 
 const recursiveHighlight = (phrase, keywords, highlightFunction) => {
@@ -31,7 +34,7 @@ function App() {
   const [newRecipeServes, setNewRecipeServes] = useState('');
   const [newRecipeTags, setNewRecipeTags] = useState([]);
   const [newRecipeIngredients, setNewRecipeIngredients] = useState([{entry:'', keywords: []}]);
-  const [newRecipeSteps, setNewRecipeSteps] = useState([{text: ''}]);
+  const [newRecipeSteps, setNewRecipeSteps] = useState([{text: '', isHeading: false}]);
   const [isSubmittingRecipe, setIsSubmittingRecipe] = useState(false);
   const [isDeletingRecipe, setIsDeletingRecipe] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -58,16 +61,20 @@ function App() {
   }
 
   const updateNewSteps = () => {
-    setNewRecipeSteps(newRecipeSteps.map(step => {return {text: step.text}}));
+    setNewRecipeSteps(newRecipeSteps.map(step => {return {text: step.text, isHeading: step.isHeading}}));
   }
 
-  const createRecipe = () => {
+  const resetRecipe = () => {
     setNewRecipeName('');
     setNewRecipeDescription('');
     setNewRecipeServes('');
     setNewRecipeTags([]);
     setNewRecipeIngredients([{entry:'', keywords: []}]);
-    setNewRecipeSteps([{text:''}]);
+    setNewRecipeSteps([{text:'', isHeading: false}]);
+  }
+
+  const createRecipe = () => {
+    resetRecipe();
     setMode('create');
   }
 
@@ -77,7 +84,7 @@ function App() {
     setNewRecipeServes(recipe.serves);
     setNewRecipeTags([...recipe.tags]);
     setNewRecipeIngredients(recipe.ingredients.map(ingredient => {return {entry: ingredient.entry, keywords: [...ingredient.keywords]}}));
-    setNewRecipeSteps(recipe.steps.map(step => {return {text: step.text}}));
+    setNewRecipeSteps(recipe.steps.map(step => {return {text: step.text, isHeading: step.isHeading}}));
     setMode('edit');
   }
 
@@ -100,12 +107,7 @@ function App() {
         return res.json().then(data => {
           recipes.splice(recipes.findIndex(oldRecipe => oldRecipe.name === recipe.name), 1);
           setRecipes([...recipes]);
-          setNewRecipeName('');
-          setNewRecipeDescription('');
-          setNewRecipeServes('');
-          setNewRecipeTags([]);
-          setNewRecipeIngredients([{entry:'', keywords: []}]);
-          setNewRecipeSteps([{text:''}]);
+          resetRecipe();
           setMode('view');
           setActiveRecipe(false);
         })
@@ -211,10 +213,10 @@ function App() {
   const sortIngredientsByStepIndex = (ingredients) => {
     return ingredients.sort((a,b) => {
       const hasStep = (ingredient) => {
-        return activeRecipe.steps.some(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
+        return activeRecipe.steps.filter(step => !step.isHeading).some(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
       }
       const getStep = (ingredient) => {
-        return activeRecipe.steps.find(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
+        return activeRecipe.steps.filter(step => !step.isHeading).find(step => ingredient.keywords.some(keyword => matchKeyword(step.text, keyword)))
       }
       const getStepIndex = (ingredient) => {
         return activeRecipe.steps.indexOf(getStep(ingredient));
@@ -349,7 +351,7 @@ function App() {
                   />
                 </DialogContent>
                 <DialogActions>
-                  <Button variant="outlined" onClick={() => setDeleteWarningOpen(false)}>Cancel</Button>
+                  <Button variant="outlined" color="info" onClick={() => setDeleteWarningOpen(false)}>Cancel</Button>
                   {isDeletingRecipe ?
                     <Button variant="outlined">
                       Deleting recipe...
@@ -384,16 +386,22 @@ function App() {
           <div className="steps">
             <h2>Steps</h2>
             {activeRecipe.steps.map((step, i) => {
+              const priorHeadingCount = activeRecipe.steps.slice(0, i).filter(step => step.isHeading).length;
               const keywords = activeRecipe.ingredients.reduce((prev, ingredient) => prev.concat(ingredient.keywords), [])
                 .sort((a,b) => {
                   return b.length - a.length;
                 });
-              return <p
+              return step.isHeading ?
+                <h3 key={i}>
+                  {step.text}
+                </h3>
+                :
+                <p
                   key={i}
                   className={stepHighlight.some(keyword => matchKeyword(step.text, keyword)) ? 'highlight' : ''}
-              >
-                {i+1}) {recursiveHighlight(step.text, keywords, linkToHighlight)}
-              </p>
+                >
+                  {i+1 - priorHeadingCount}) {recursiveHighlight(step.text, keywords, linkToHighlight)}
+                </p>
             })}
           </div>
         </>
@@ -534,21 +542,40 @@ function App() {
                     variant="outlined"
                     margin="normal"
                     value={newStep.text}
-                    onChange={e => {newStep.text = e.target.value; updateNewSteps()}}
+                    onChange={e => {
+                      newStep.text = e.target.value; updateNewSteps()
+                    }}
                     InputProps={{
                       startAdornment: <InputAdornment position="start">Step {i+1}:</InputAdornment>,
                     }}
                   />
+                  <FormGroup sx={{display:'inline-block'}}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={newStep.isHeading}
+                          onChange={e => {
+                            newStep.isHeading = e.target.value === 'on';
+                            updateNewSteps()
+                          }}
+                        />
+                      }
+                      label='Heading'
+                      labelPlacement='bottom'
+                    />
+                  </FormGroup>
+                  {i > 0 && <ArrowCircleUpIcon onClick={() => {newRecipeSteps.splice(i, 1); newRecipeSteps.splice(i-1, 0, newStep); updateNewSteps();}}/>}
                   {newRecipeSteps.length > 1 && <RemoveCircleOutlineOutlinedIcon onClick={() => {newRecipeSteps.splice(i,1); updateNewSteps();}}/>}
+                  {i < newRecipeSteps.length - 1 && <ArrowCircleDownIcon onClick={() => {newRecipeSteps.splice(i, 1); newRecipeSteps.splice(i+1, 0, newStep); updateNewSteps();}}/>}
                 </div>)}
               <div>
-                <AddCircleOutlineOutlinedIcon onClick={() => {newRecipeSteps.push({text:''}); updateNewSteps();}}/>
+                <AddCircleOutlineOutlinedIcon onClick={() => {newRecipeSteps.push({text:'', isHeading: false}); updateNewSteps();}}/>
               </div>
             </div>
             <br/>
             {isSubmittingRecipe ?
               <Button
-                aria-label="submit"
+                aria-label="submitting"
                 variant="outlined"
               >
                 <AddIcon/> Uploading Recipe
@@ -573,6 +600,15 @@ function App() {
                   <AddIcon/> Add Recipe
                 </Button>
             }
+            <Button
+              color='info'
+              aria-label="cancel"
+              variant="outlined"
+              sx={{marginLeft:'10px'}}
+              onClick={() => {resetRecipe(); setMode('view');}}
+            >
+              <CancelIcon/> Cancel
+            </Button>
             <br/>
             <br/>
             <Collapse in={uploadError.length > 0}>

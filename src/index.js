@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { grey } from '@mui/material/colors';
 
 const theme = createTheme({
   palette: {
@@ -15,6 +16,9 @@ const theme = createTheme({
     },
     error: {
       main: '#F08080'
+    },
+    info: {
+      main: grey[800]
     }
   },
   components: {
