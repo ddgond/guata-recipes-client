@@ -1,6 +1,6 @@
 import './App.css';
 import {useEffect, useState} from "react";
-import {Divider, Button, Collapse, Chip, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Fab, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
+import {Divider, Button, Collapse, Chip, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
 import AddIcon from '@mui/icons-material/Add';
@@ -308,23 +308,23 @@ function App() {
               <p>{activeRecipe.description}</p>
               <p>Serves: {activeRecipe.serves}</p>
               <p>Tags: {activeRecipe.tags.map(tag=>selectedTags.includes(tag) ? <b>{tag}</b> : tag).reduce((prev, tag)=>[prev, ', ', tag])}</p>
-              <Fab
+              <Button
                 color="primary"
                 aria-label="submit"
-                variant="extended"
+                variant="outlined"
                 onClick={() => editRecipe(activeRecipe)}
               >
                 <EditIcon/> Edit Recipe
-              </Fab>
-              <Fab
+              </Button>
+              <Button
                 sx={{marginLeft: '10px'}}
                 color="error"
-                aria-label="submit"
-                variant="extended"
+                aria-label="delete"
+                variant="outlined"
                 onClick={() => setDeleteWarningOpen(true)}
               >
                 <DeleteIcon/> Delete Recipe
-              </Fab>
+              </Button>
               <Dialog
                 open={deleteWarningOpen}
                 onClose={() => setDeleteWarningOpen(false)}
@@ -349,13 +349,13 @@ function App() {
                   />
                 </DialogContent>
                 <DialogActions>
-                  <Button onClick={() => setDeleteWarningOpen(false)}>Cancel</Button>
+                  <Button variant="outlined" onClick={() => setDeleteWarningOpen(false)}>Cancel</Button>
                   {isDeletingRecipe ?
-                    <Button>
+                    <Button variant="outlined">
                       Deleting recipe...
                     </Button>
                     :
-                    <Button onClick={() => {
+                    <Button variant="outlined" onClick={() => {
                       deleteRecipe(activeRecipe);
                     }} color="error">
                       Delete
@@ -369,6 +369,7 @@ function App() {
           </Linkify>
           <div className="recipeBodyBackground"/>
           <div className="ingredients">
+            <h2>Ingredients</h2>
             {sortIngredientsByStepIndex(activeRecipe.ingredients).map(ingredient =>
                 <p
                     key={ingredient.entry}
@@ -381,6 +382,7 @@ function App() {
             )}
           </div>
           <div className="steps">
+            <h2>Steps</h2>
             {activeRecipe.steps.map((step, i) => {
               const keywords = activeRecipe.ingredients.reduce((prev, ingredient) => prev.concat(ingredient.keywords), [])
                 .sort((a,b) => {
@@ -468,7 +470,7 @@ function App() {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    variant="filled"
+                    variant="outlined"
                     label="Tags"
                     placeholder="Set at least one tag for filtering"
                   />
@@ -508,7 +510,7 @@ function App() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        variant="filled"
+                        variant="outlined"
                         label="Keywords"
                         placeholder="Set at least one keyword for highlighting"
                       />
@@ -545,31 +547,31 @@ function App() {
             </div>
             <br/>
             {isSubmittingRecipe ?
-              <Fab
+              <Button
                 aria-label="submit"
-                variant="extended"
+                variant="outlined"
               >
                 <AddIcon/> Uploading Recipe
-              </Fab>
+              </Button>
               :
               mode === 'edit' ?
-                <Fab
+                <Button
                   color="primary"
                   aria-label="submit"
-                  variant="extended"
+                  variant="outlined"
                   onClick={submitRecipe}
                 >
                   <BookIcon/> Save Changes
-                </Fab>
+                </Button>
               :
-                <Fab
+                <Button
                   color="primary"
                   aria-label="submit"
-                  variant="extended"
+                  variant="outlined"
                   onClick={submitRecipe}
                 >
                   <AddIcon/> Add Recipe
-                </Fab>
+                </Button>
             }
             <br/>
             <br/>

@@ -11,11 +11,11 @@
 }
 
 .ingredients .highlight {
-  background-color: bisque;
+  background-color: lightblue;
 }
 
 .steps .highlight {
-  background-color: bisque;
+  background-color: lightblue;
 }
 
 .highlightBlock {
@@ -23,12 +23,12 @@
 }
 
 .recipeHeader {
-  background-color: bisque;
   border: 1px solid black;
   border-top-width: 0;
   border-radius: 0 0 20px 20px;
   grid-column: 2 / 4;
   grid-row: 1;
+  padding: 0 5%;
 }
 
 .recipeList {
@@ -39,19 +39,19 @@
 .recipeListItem {
   padding: 10px;
   margin: 5px auto;
-  background-color: bisque;
   border: 1px solid black;
   border-left-width: 0;
-  border-radius: 0 20px 20px 0;
 }
 
 .recipeListItem:hover {
-  background-color: burlywood;
+  background-color: lightblue;
+  color: black;
 }
 
 .recipeListItem.selected {
+  background-color: lightblue;
+  color: black;
   font-weight: bold;
-  background-color: #f0a802;
 }
 
 .ingredients {
@@ -60,6 +60,7 @@
   justify-self: left;
   text-align: left;
   margin-left: 10px;
+  padding: 0 5%;
 }
 
 .steps {
@@ -68,6 +69,7 @@
   justify-self: left;
   text-align: left;
   margin-right: 10px;
+  padding: 0 5%;
 }
 
 .recipeBodyBackground {

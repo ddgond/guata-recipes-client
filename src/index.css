@@ -5,10 +5,22 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #cbc9cf;
+  /*background-color: #cbc9cf;*/
+  font-family: circe, sans-serif;
+  font-weight: 400;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+h1 {
+  font-family: beaufort-pro, sans-serif;
+  font-weight: 700;
+}
+
+h2 {
+  font-family: beaufort-pro, sans-serif;
+  font-weight: 700;
 }
