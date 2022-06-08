@@ -1,5 +1,6 @@
 import './App.css';
 import {useEffect, useState} from "react";
+import {useParams, useNavigate, Link} from "react-router-dom";
 import {Divider, Button, Collapse, Chip, Checkbox, FormGroup, FormControlLabel, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
@@ -20,10 +21,13 @@ const recursiveHighlight = (phrase, keywords, highlightFunction) => {
   return phrase.split(keyword).map(sub=>recursiveHighlight(sub, keywords.slice(1), highlightFunction)).reduce((prev, cur) => [prev, highlightFunction(keyword), cur]);
 };
 
+const toSlug = (name) => {
+  return name.replaceAll(' ', '-').toLowerCase();
+}
+
 function App() {
   const [ingredientHighlight, setIngredientHighlight] = useState(false);
   const [stepHighlight, setStepHighlight] = useState([]);
-  const [activeRecipe, setActiveRecipe] = useState(false);
   const [mode, setMode] = useState('view');
   const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
@@ -39,6 +43,10 @@ function App() {
   const [isDeletingRecipe, setIsDeletingRecipe] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [debug, setDebug] = useState('');
+  const {recipeSlug} = useParams();
+  const navigate = useNavigate();
+
+  const activeRecipe = (recipeSlug && recipes.find(recipe => toSlug(recipe.name) === toSlug(recipeSlug))) || null;
 
   useEffect(() => {
     fetch('/api').then(response => {
@@ -76,6 +84,7 @@ function App() {
   const createRecipe = () => {
     resetRecipe();
     setMode('create');
+    navigate('/');
   }
 
   const editRecipe = (recipe) => {
@@ -109,7 +118,7 @@ function App() {
           setRecipes([...recipes]);
           resetRecipe();
           setMode('view');
-          setActiveRecipe(false);
+          navigate('');
         })
       } else {
         res.text().then(data => {
@@ -156,7 +165,7 @@ function App() {
           }
           recipes.push(data);
           setRecipes([...recipes]);
-          setActiveRecipe(data);
+          navigate(`/${toSlug(data.name)}`);
           setMode('view');
         })
       } else {
@@ -297,9 +306,11 @@ function App() {
           )}>
         </Autocomplete>
         {filteredRecipes.map(recipe =>
-            <div key={recipe.name} className={`recipeListItem ${activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`} onMouseDown={() => {setActiveRecipe((activeRecipe.name !== recipe.name || mode === 'create') && recipe); setMode('view')}}>
+          <Link key={recipe.name} to={activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? '' : `/${toSlug(recipe.name)}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className={`recipeListItem ${activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`} onMouseDown={() => setMode('view')}>
               {recipe.name}
             </div>
+          </Link>
         )}
       </div>
       {activeRecipe && mode === 'view' &&
