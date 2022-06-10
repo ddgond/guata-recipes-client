@@ -1,3 +1,5 @@
+Example at https://recipes.guata.me
+
 Use `npm i` to install dependencies.
 
 Use `npm start` to run the development server. The API server should be running on port 8000 on the same machine.
