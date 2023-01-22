@@ -204,8 +204,8 @@ function App() {
         disableInteractive>
       <span
         className='underline'
-        onMouseEnter={() => setIngredientHighlight(phrase)}
-        onMouseLeave={() => setIngredientHighlight(false)}
+        onPointerEnter={() => setIngredientHighlight(phrase)}
+        onPointerLeave={() => setIngredientHighlight(false)}
       >
         {phrase}
       </span>
