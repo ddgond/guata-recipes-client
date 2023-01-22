@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import BookIcon from '@mui/icons-material/Book';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import MenuIcon from "@mui/icons-material/MenuOutlined";
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -47,7 +48,7 @@ function App() {
   const [debug, setDebug] = useState('');
   const {recipeSlug} = useParams();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const isNarrow = useMediaQuery('(max-width:1000px)');
 
@@ -286,7 +287,10 @@ function App() {
   const recipeListElement = <div className="recipeList">
     <br/>
     <div className={`recipeListItem ${mode === 'create' ? 'selected' : ''}`}
-         onMouseDown={() => mode === 'create' ? setMode('view') : createRecipe()}>
+         onMouseDown={() => {
+           setMenuOpen(false);
+           mode === 'create' ? setMode('view') : createRecipe();
+         }}>
       + New Recipe +
     </div>
     <Divider/>
@@ -310,7 +314,10 @@ function App() {
             style={{textDecoration: 'none', color: 'inherit'}}>
         <div
           className={`recipeListItem ${activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`}
-          onMouseDown={() => setMode('view')}>
+          onMouseDown={() => {
+            setMode('view');
+            setMenuOpen(false);
+          }}>
           {recipe.name}
         </div>
       </Link>
@@ -325,11 +332,13 @@ function App() {
         </div>
       }
       {isNarrow ?
-        <Drawer
-          anchor='left'
-          open={menuOpen}
-          onClose={toggleMenu}
-        >{recipeListElement}</Drawer>
+        <>
+          <Drawer
+            anchor='left'
+            open={menuOpen || (!activeRecipe && mode === 'view')}
+            onClose={toggleMenu}
+          >{recipeListElement}</Drawer>
+        </>
         :
         recipeListElement
       }
@@ -337,6 +346,12 @@ function App() {
         <>
           <Linkify>
             <div className="recipeHeader">
+              <Button
+                variant="contained"
+                onClick={toggleMenu}
+              >
+                <MenuIcon/>
+              </Button>
               <h1>{activeRecipe.name}</h1>
               <p>{activeRecipe.description}</p>
               <p>Serves: {activeRecipe.serves}</p>
