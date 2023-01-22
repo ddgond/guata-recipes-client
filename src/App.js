@@ -337,6 +337,7 @@ function App() {
             anchor='left'
             open={menuOpen || (!activeRecipe && mode === 'view')}
             onClose={toggleMenu}
+            style={{overflowX: 'hidden'}}
           >{recipeListElement}</Drawer>
         </>
         :
@@ -346,12 +347,17 @@ function App() {
         <>
           <Linkify>
             <div className="recipeHeader">
-              <Button
-                variant="contained"
-                onClick={toggleMenu}
-              >
-                <MenuIcon/>
-              </Button>
+              {
+                isNarrow ?
+                <Button
+                  variant="contained"
+                  onClick={toggleMenu}
+                >
+                  <MenuIcon/>
+                </Button>
+                  :
+                <></>
+              }
               <h1>{activeRecipe.name}</h1>
               <p>{activeRecipe.description}</p>
               <p>Serves: {activeRecipe.serves}</p>
