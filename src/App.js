@@ -407,8 +407,8 @@ function App() {
                 <p
                     key={ingredient.entry}
                     className={ingredient.keywords.includes(ingredientHighlight) && 'highlight'}
-                    onMouseEnter={() => setStepHighlight(ingredient.keywords)}
-                    onMouseLeave={() => setStepHighlight([])}
+                    onPointerEnter={() => setStepHighlight(ingredient.keywords)}
+                    onPointerLeave={() => setStepHighlight([])}
                 >
                   • {ingredient.entry}
                 </p>
