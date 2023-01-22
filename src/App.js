@@ -1,6 +1,7 @@
 import './App.css';
 import {useEffect, useState} from "react";
 import {useParams, useNavigate, Link} from "react-router-dom";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {Divider, Button, Collapse, Chip, Checkbox, FormGroup, FormControlLabel, InputAdornment, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Alert, AlertTitle, Tooltip, Autocomplete, TextField} from "@mui/material";
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import RemoveCircleOutlineOutlinedIcon from '@mui/icons-material/RemoveCircleOutlineOutlined';
@@ -11,6 +12,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 import CancelIcon from '@mui/icons-material/Cancel';
+import {Drawer} from "@mui/material";
 import Linkify from 'react-linkify';
 
 const recursiveHighlight = (phrase, keywords, highlightFunction) => {
@@ -45,6 +47,9 @@ function App() {
   const [debug, setDebug] = useState('');
   const {recipeSlug} = useParams();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(true);
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const isNarrow = useMediaQuery('(max-width:1000px)');
 
   const activeRecipe = (recipeSlug && recipes.find(recipe => toSlug(recipe.name) === toSlug(recipeSlug))) || null;
 
@@ -278,6 +283,40 @@ function App() {
   selectableTags = selectableTags.sort((a,b) => a.localeCompare(b));
   selectableTags = selectableTags.sort((a,b) => getTagMatchCount(b) - getTagMatchCount(a));
 
+  const recipeListElement = <div className="recipeList">
+    <br/>
+    <div className={`recipeListItem ${mode === 'create' ? 'selected' : ''}`}
+         onMouseDown={() => mode === 'create' ? setMode('view') : createRecipe()}>
+      + New Recipe +
+    </div>
+    <Divider/>
+    <Autocomplete
+      multiple
+      filterSelectedOptions
+      options={selectableTags}
+      getOptionLabel={tag => `${tag} (${getTagMatchCount(tag)})`}
+      onChange={(event, value) => setSelectedTags(value)}
+      renderInput={params => (
+        <TextField
+          {...params}
+          variant="standard"
+          label="Filter by tag"
+        />
+      )}>
+    </Autocomplete>
+    {filteredRecipes.map(recipe =>
+      <Link key={recipe.name}
+            to={activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? '' : `/${toSlug(recipe.name)}`}
+            style={{textDecoration: 'none', color: 'inherit'}}>
+        <div
+          className={`recipeListItem ${activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`}
+          onMouseDown={() => setMode('view')}>
+          {recipe.name}
+        </div>
+      </Link>
+    )}
+  </div>
+
   return (
     <div className="App">
       {JSON.stringify(debug).length > 2 &&
@@ -285,34 +324,15 @@ function App() {
           {JSON.stringify(debug)}
         </div>
       }
-      <div className="recipeList">
-        <br/>
-        <div className={`recipeListItem ${mode === 'create' ? 'selected' : ''}`} onMouseDown={() => mode === 'create' ? setMode('view') : createRecipe()}>
-          + New Recipe +
-        </div>
-        <Divider/>
-        <Autocomplete
-          multiple
-          filterSelectedOptions
-          options={selectableTags}
-          getOptionLabel={tag => `${tag} (${getTagMatchCount(tag)})`}
-          onChange={(event, value) => setSelectedTags(value)}
-          renderInput={params => (
-            <TextField
-              {...params}
-              variant="standard"
-              label="Filter by tag"
-            />
-          )}>
-        </Autocomplete>
-        {filteredRecipes.map(recipe =>
-          <Link key={recipe.name} to={activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? '' : `/${toSlug(recipe.name)}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className={`recipeListItem ${activeRecipe && activeRecipe.name === recipe.name && (mode === 'view' || mode === 'edit') ? 'selected' : ''}`} onMouseDown={() => setMode('view')}>
-              {recipe.name}
-            </div>
-          </Link>
-        )}
-      </div>
+      {isNarrow ?
+        <Drawer
+          anchor='left'
+          open={menuOpen}
+          onClose={toggleMenu}
+        >{recipeListElement}</Drawer>
+        :
+        recipeListElement
+      }
       {activeRecipe && mode === 'view' &&
         <>
           <Linkify>
@@ -480,10 +500,16 @@ function App() {
                 value={newRecipeTags}
                 options={tags}
                 freeSolo
+                // convert text to chip on focus loss
+                onBlur={(event) => {
+                  if (event.target.value && !newRecipeTags.includes(event.target.value)) {
+                    setNewRecipeTags([...newRecipeTags, event.target.value]);
+                  }
+                }}
                 onChange={(event, value) => setNewRecipeTags(value)}
                 renderTags={(value, getTagProps) =>
                   value.map((option, index) => (
-                  <Chip variant="outlined" label={option} {...getTagProps({ index })} />
+                    <Chip variant="outlined" label={option} {...getTagProps({ index })} />
                   ))
                 }
                 renderInput={(params) => (
@@ -510,6 +536,29 @@ function App() {
                     }}
                     variant="outlined"
                     margin="normal"
+                    // When pasting a recipe with multiple ingredients, split newlines into separate ingredients
+                    onPaste={(e) => {
+                      const pastedText = e.clipboardData.getData('text');
+                      const pastedIngredients = pastedText.split('\n').filter(ingredient => ingredient.trim() !== '').map(ingredient => ingredient.trim());
+                      if (pastedIngredients.length === 1) {
+                        return;
+                      }
+                      e.preventDefault();
+                      // Remove the ingredient number from the front of the ingredient text (i.e. "1. ", "1) ", "(1) ", etc.) but only remove "." if a space after
+                      const ingredientPrefixRegex = /^([•*-]|\(?\d+[.)])\W+/;
+                      pastedIngredients.forEach((ingredient, i) => {
+                        if (ingredientPrefixRegex.test(ingredient)) {
+                          pastedIngredients[i] = ingredient.replace(ingredientPrefixRegex, '');
+                        }
+                      });
+                      if (e.target.value) {
+                        // Add new ingredients after the current ingredient
+                        newRecipeIngredients.splice(i+1, 0, ...pastedIngredients.map(ingredient => ({entry: ingredient, keywords: []})));
+                      } else {
+                        newRecipeIngredients.splice(i, 1, ...pastedIngredients.map(ingredient => ({entry: ingredient, keywords: []})));
+                      }
+                      updateNewIngredients();
+                    }}
                     value={newIngredient.entry}
                     onChange={e => {newIngredient.entry = e.target.value; updateNewIngredients()}}
                   />
@@ -520,6 +569,13 @@ function App() {
                     value={newIngredient.keywords}
                     options={[]}
                     freeSolo
+                    // convert text to chip on focus loss
+                    onBlur={(event) => {
+                      if (event.target.value && !newIngredient.keywords.includes(event.target.value)) {
+                        newIngredient.keywords.push(event.target.value);
+                        updateNewIngredients();
+                      }
+                    }}
                     onChange={(event, value) => {newIngredient.keywords = value; updateNewIngredients()}}
                     renderTags={(value, getTagProps) =>
                       value.map((option, index) => (
@@ -553,6 +609,24 @@ function App() {
                     variant="outlined"
                     margin="normal"
                     value={newStep.text}
+                    // When pasting a recipe with multiple steps, split newlines into separate steps
+                    onPaste={e => {
+                      const pastedText = e.clipboardData.getData('text');
+                      const pastedSteps = pastedText.split('\n').filter(step => step.trim() !== '').map(step => step.trim());
+                      if (pastedSteps.length === 1) {
+                        return;
+                      }
+                      e.preventDefault();
+                      // Remove the step number from the front of the step text (i.e. "1. ", "1) ", "(1) ", etc.)
+                      const stepPrefixRegex = /^([•*-]|\(?\d+[.)])\W+/;
+                      pastedSteps.forEach((step, i) => {
+                        if (stepPrefixRegex.test(step)) {
+                          pastedSteps[i] = step.replace(stepPrefixRegex, '');
+                        }
+                      });
+                      newRecipeSteps.splice(i, 1, ...pastedSteps.map(step => ({text:step, isHeading:false})));
+                      updateNewSteps();
+                    }}
                     onChange={e => {
                       newStep.text = e.target.value; updateNewSteps()
                     }}
@@ -567,7 +641,7 @@ function App() {
                           checked={newStep.isHeading}
                           onChange={e => {
                             newStep.isHeading = e.target.value === 'on';
-                            updateNewSteps()
+                            updateNewSteps();
                           }}
                         />
                       }

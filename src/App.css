@@ -1,9 +1,9 @@
 .App {
   text-align: center;
   display: grid;
-  grid: auto auto 1fr / 1fr 2fr 4fr 10px;
+  grid: auto auto 1fr / 1fr 2fr 4fr;
   place-items: stretch;
-  gap: 5vw;
+  gap: 2vw;
 }
 
 .underline {
@@ -29,6 +29,7 @@
   grid-column: 2 / 4;
   grid-row: 1;
   padding: 0 5%;
+  margin: 0 40px;
 }
 
 .recipeList {
@@ -59,7 +60,7 @@
   grid-row: 2;
   justify-self: left;
   text-align: left;
-  margin-left: 10px;
+  margin-left: 50px;
   padding: 0 5%;
 }
 
@@ -68,7 +69,7 @@
   grid-row: 2;
   justify-self: left;
   text-align: left;
-  margin-right: 10px;
+  margin-right: 50px;
   padding: 0 5%;
 }
 
@@ -78,6 +79,7 @@
   background-color: white;
   border: 1px solid black;
   border-radius: 20px;
+  margin: 0 40px;
 }
 
 .wideCreationInput {
@@ -93,4 +95,28 @@
 .narrowCreationInput {
   width: 40%;
   margin: 0 auto;
+}
+
+@media(max-width: 1000px) {
+  .recipeHeader {
+    grid-column: 1 / 4;
+  }
+
+  .ingredients {
+    grid-column: 1 / 4;
+    margin-right: 50px;
+  }
+
+  .steps {
+    grid-column: 1 / 4;
+    grid-row: 3;
+    margin-left: 50px;
+    margin-bottom: 50px;
+  }
+
+  .recipeBodyBackground {
+    grid-column: 1 / 4;
+    grid-row: 2 / 4;
+    margin-bottom: 40px;
+  }
 }
